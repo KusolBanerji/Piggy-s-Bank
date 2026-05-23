@@ -1,0 +1,27 @@
+server:
+  port: 8081                    # ← Different port! User Service runs on 8080
+
+spring:
+  application:
+    name: account-service
+
+  datasource:
+    url: jdbc:h2:mem:accountsdb  # ← Different DB name!
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# URL of User Service — Account Service will call this
+user-service:
+  url: http://localhost:8080
