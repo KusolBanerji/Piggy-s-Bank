@@ -66,4 +66,22 @@ public class AccountController {
         log.info("GET /api/accounts/user/{}/has-active", userId);
         return ResponseEntity.ok(accountService.hasActiveAccounts(userId));
     }
+
+    // PUT /api/accounts/{accountNumber}/debit
+    @PutMapping("/{accountNumber}/debit")
+    public ResponseEntity<AccountResponse> debit(
+            @PathVariable String accountNumber,
+            @Valid @RequestBody BalanceUpdateRequest request) {
+        log.info("PUT /api/accounts/{}/debit", accountNumber);
+        return ResponseEntity.ok(accountService.debit(accountNumber, request));
+    }
+
+    // PUT /api/accounts/{accountNumber}/credit
+    @PutMapping("/{accountNumber}/credit")
+    public ResponseEntity<AccountResponse> credit(
+            @PathVariable String accountNumber,
+            @Valid @RequestBody BalanceUpdateRequest request) {
+        log.info("PUT /api/accounts/{}/credit", accountNumber);
+        return ResponseEntity.ok(accountService.credit(accountNumber, request));
+    }
 }

@@ -60,6 +60,14 @@ public class GlobalExceptionHandler {
                         "Something went wrong", request));
     }
 
+    @ExceptionHandler(InsufficientBalanceException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientBalance(
+            InsufficientBalanceException ex, HttpServletRequest request) {
+        log.error("Insufficient balance: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildError(400, "Bad Request", ex.getMessage(), request));
+        }
+
     // ─── Helper ───────────────────────────────────────────────
     private ErrorResponse buildError(int status, String error,
                                      String message, HttpServletRequest request) {

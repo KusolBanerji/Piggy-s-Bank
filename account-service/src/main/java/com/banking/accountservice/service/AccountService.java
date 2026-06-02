@@ -128,4 +128,55 @@ public class AccountService {
                 .updatedAt(account.getUpdatedAt())
                 .build();
     }
+
+    // ─── DEBIT (subtract from balance) ───────────────────────
+    @Transactional
+    public AccountResponse debit(String accountNumber, BalanceUpdateRequest request) {
+        log.info("Debiting {} from account: {}", request.getAmount(), accountNumber);
+
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+
+        // Business rule: account must be active
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw new AccountNotActiveException(accountNumber);
+        }
+
+        // Business rule: sufficient balance check
+        if (account.getBalance().compareTo(request.getAmount()) < 0) {
+            throw new InsufficientBalanceException(accountNumber, account.getBalance());
+        }
+
+        // Deduct balance
+        account.setBalance(account.getBalance().subtract(request.getAmount()));
+        Account saved = accountRepository.save(account);
+
+        UserResponse user = getUserOrThrow(account.getUserId());
+        log.info("Debited {} from {}. New balance: {}",
+                request.getAmount(), accountNumber, saved.getBalance());
+        return mapToResponse(saved, user);
+    }
+
+    // ─── CREDIT (add to balance) ──────────────────────────────
+    @Transactional
+    public AccountResponse credit(String accountNumber, BalanceUpdateRequest request) {
+        log.info("Crediting {} to account: {}", request.getAmount(), accountNumber);
+
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+
+        // Business rule: account must be active
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw new AccountNotActiveException(accountNumber);
+        }
+
+        // Add to balance
+        account.setBalance(account.getBalance().add(request.getAmount()));
+        Account saved = accountRepository.save(account);
+
+        UserResponse user = getUserOrThrow(account.getUserId());
+        log.info("Credited {} to {}. New balance: {}",
+                request.getAmount(), accountNumber, saved.getBalance());
+        return mapToResponse(saved, user);
+    }
 }
