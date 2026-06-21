@@ -1,0 +1,20 @@
+server:
+  port: 8761                 # Standard convention port for Eureka
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  client:
+    register-with-eureka: false   # this server should NOT register itself as a client
+                                  # Eureka Server itself is not a "service" to discover — don't self-register
+
+    fetch-registry: false         # this server doesn't need to fetch a registry (it IS the registry)
+                                  #
+  server:
+    enable-self-preservation: false  # disabled for local dev
+#Eureka has a safety feature: 
+# if it suddenly stops receiving heartbeats from many services at once, 
+# it assumes there's a network problem (not that all services actually died) 
+# and keeps them registered anyway, to avoid mass incorrect removal.

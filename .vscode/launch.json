@@ -2,6 +2,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "EurekaServerApplication",
+            "request": "launch",
+            "mainClass": "com.banking.eureka_server.EurekaServerApplication",
+            "projectName": "eureka-server"
+        },
+        {
+            "type": "java",
+            "name": "ConfigServerApplication",
+            "request": "launch",
+            "mainClass": "com.banking.config_server.ConfigServerApplication",
+            "projectName": "config-server"
+        },
+        {
+            "type": "java",
             "name": "Spring Boot-AccountServiceApplication<account-service>",
             "request": "launch",
             "cwd": "${workspaceFolder}",

@@ -5,7 +5,8 @@ import com.banking.transactionservice.dto.BalanceUpdateRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-@FeignClient(name = "account-service", url = "${account-service.url}")
+//@FeignClient(name = "account-service", url = "${account-service.url}")
+@FeignClient(name = "account-service")
 public interface AccountServiceClient {
 
     // Get account details by account number

@@ -1,23 +1,12 @@
-server:
-  port: 8080
-
 spring:
   application:
-    name: services
+    name: services            # MUST match config file name "services.yml" in config repo
+  config:
+    import: "configserver:http://localhost:8888"   # fetch config from here
 
-  datasource:
-    url: jdbc:h2:mem:bankingdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka     # register here
+  instance:
+    prefer-ip-address: true

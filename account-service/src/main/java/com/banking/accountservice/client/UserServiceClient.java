@@ -5,10 +5,14 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(
+/*@FeignClient(
     name = "user-service",
     url = "${user-service.url}"     // reads from application.yml
-)
+)*/
+
+@FeignClient(name = "services")
+// "services" = exact spring.application.name of User Service
+// No more url = "${user-service.url}" — Eureka resolves it now!
 public interface UserServiceClient {
 
     @GetMapping("/api/users/{id}")
