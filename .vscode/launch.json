@@ -5,14 +5,16 @@
             "name": "EurekaServerApplication",
             "request": "launch",
             "mainClass": "com.banking.eureka_server.EurekaServerApplication",
-            "projectName": "eureka-server"
+            "projectName": "eureka-server",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=54577 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=eureka-server"
         },
         {
             "type": "java",
             "name": "ConfigServerApplication",
             "request": "launch",
             "mainClass": "com.banking.config_server.ConfigServerApplication",
-            "projectName": "config-server"
+            "projectName": "config-server",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=54417 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=config-server"
         },
         {
             "type": "java",
@@ -31,6 +33,17 @@
             "cwd": "${workspaceFolder}",
             "mainClass": "com.banking.services.ServicesApplication",
             "projectName": "services",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=54792 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=services"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ApiGatewayApplication<api-gateway>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.banking.api_gateway.ApiGatewayApplication",
+            "projectName": "api-gateway",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
         }
