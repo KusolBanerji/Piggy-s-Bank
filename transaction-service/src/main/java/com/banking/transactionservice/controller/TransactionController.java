@@ -20,7 +20,8 @@ public class TransactionController {
     // POST /api/transactions/deposit
     @PostMapping("/deposit")
     public ResponseEntity<TransactionResponse> deposit(
-            @Valid @RequestBody DepositRequest request) {
+            @Valid @RequestBody DepositRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) { // required = false → key is optional, won't fail if missing
         log.info("POST /api/transactions/deposit");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(transactionService.deposit(request));
@@ -29,7 +30,8 @@ public class TransactionController {
     // POST /api/transactions/withdraw
     @PostMapping("/withdraw")
     public ResponseEntity<TransactionResponse> withdraw(
-            @Valid @RequestBody WithdrawRequest request) {
+            @Valid @RequestBody WithdrawRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         log.info("POST /api/transactions/withdraw");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(transactionService.withdraw(request));
@@ -38,7 +40,8 @@ public class TransactionController {
     // POST /api/transactions/transfer
     @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> transfer(
-            @Valid @RequestBody TransferRequest request) {
+            @Valid @RequestBody TransferRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         log.info("POST /api/transactions/transfer");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(transactionService.transfer(request));

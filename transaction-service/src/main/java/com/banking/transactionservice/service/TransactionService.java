@@ -21,17 +21,30 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountServiceClient accountServiceClient;
     private final TransactionNumberGenerator transactionNumberGenerator;
+    private final IdempotencyService idempotencyService;    // ← ADD THIS
 
     // ─── DEPOSIT ──────────────────────────────────────────────
     @Transactional
-    public TransactionResponse deposit(DepositRequest request) {
+    public TransactionResponse deposit(DepositRequest request,
+                                       String idempotencyKey) {   // ← ADD KEY PARAM
         log.info("Deposit {} to account: {}",
                 request.getAmount(), request.getToAccountNumber());
 
-        // Step 1: Verify account exists
+        // Check idempotency — already processed?
+        if (idempotencyKey != null) {
+            Optional<IdempotencyRecord> existing =
+                    idempotencyService.findValidRecord(idempotencyKey);
+            if (existing.isPresent()) {
+                log.info("Duplicate deposit request detected, returning stored response");
+                return idempotencyService.deserializeResponse(
+                        existing.get().getResponseBody(),
+                        TransactionResponse.class);
+            }
+        }
+
+        // Not seen before — process normally
         getAccountOrThrow(request.getToAccountNumber());
 
-        // Step 2: Credit the account
         accountServiceClient.credit(
                 request.getToAccountNumber(),
                 BalanceUpdateRequest.builder()
@@ -40,7 +53,6 @@ public class TransactionService {
                         .build()
         );
 
-        // Step 3: Record the transaction
         Transaction transaction = Transaction.builder()
                 .transactionNumber(transactionNumberGenerator.generate())
                 .type(TransactionType.DEPOSIT)
@@ -51,34 +63,51 @@ public class TransactionService {
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
+        TransactionResponse response = mapToResponse(saved);
+
+        // Store idempotency record
+        if (idempotencyKey != null) {
+            idempotencyService.saveRecord(
+                    idempotencyKey,
+                    saved.getTransactionNumber(),
+                    response,
+                    201
+            );
+        }
+
         log.info("Deposit successful: {}", saved.getTransactionNumber());
-        return mapToResponse(saved);
+        return response;
     }
 
     // ─── WITHDRAWAL ───────────────────────────────────────────
     @Transactional
-    public TransactionResponse withdraw(WithdrawRequest request) {
+    public TransactionResponse withdraw(WithdrawRequest request,
+                                        String idempotencyKey) {
         log.info("Withdraw {} from account: {}",
                 request.getAmount(), request.getFromAccountNumber());
 
-        // Step 1: Verify account exists
-        getAccountOrThrow(request.getFromAccountNumber());
-
-        // Step 2: Debit the account
-        // Account Service handles insufficient balance check
-        try {
-            accountServiceClient.debit(
-                    request.getFromAccountNumber(),
-                    BalanceUpdateRequest.builder()
-                            .amount(request.getAmount())
-                            .description(request.getDescription())
-                            .build()
-            );
-        } catch (FeignException.BadRequest e) {
-            throw new InsufficientBalanceException(request.getFromAccountNumber(), request.getAmount());
+        // Check idempotency
+        if (idempotencyKey != null) {
+            Optional<IdempotencyRecord> existing =
+                    idempotencyService.findValidRecord(idempotencyKey);
+            if (existing.isPresent()) {
+                log.info("Duplicate withdrawal request detected, returning stored response");
+                return idempotencyService.deserializeResponse(
+                        existing.get().getResponseBody(),
+                        TransactionResponse.class);
+            }
         }
 
-        // Step 3: Record the transaction
+        getAccountOrThrow(request.getFromAccountNumber());
+
+        accountServiceClient.debit(
+                request.getFromAccountNumber(),
+                BalanceUpdateRequest.builder()
+                        .amount(request.getAmount())
+                        .description(request.getDescription())
+                        .build()
+        );
+
         Transaction transaction = Transaction.builder()
                 .transactionNumber(transactionNumberGenerator.generate())
                 .type(TransactionType.WITHDRAWAL)
@@ -89,42 +118,57 @@ public class TransactionService {
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
+        TransactionResponse response = mapToResponse(saved);
+
+        if (idempotencyKey != null) {
+            idempotencyService.saveRecord(
+                    idempotencyKey,
+                    saved.getTransactionNumber(),
+                    response,
+                    201
+            );
+        }
+
         log.info("Withdrawal successful: {}", saved.getTransactionNumber());
-        return mapToResponse(saved);
+        return response;
     }
 
     // ─── TRANSFER ─────────────────────────────────────────────
-    @Transactional      // Critical — both debit and credit must succeed or both rollback
-    public TransactionResponse transfer(TransferRequest request) {
+    @Transactional
+    public TransactionResponse transfer(TransferRequest request,
+                                        String idempotencyKey) {
         log.info("Transfer {} from {} to {}",
                 request.getAmount(),
                 request.getFromAccountNumber(),
                 request.getToAccountNumber());
 
-        // Business rule: can't transfer to same account
+        // Check idempotency
+        if (idempotencyKey != null) {
+            Optional<IdempotencyRecord> existing =
+                    idempotencyService.findValidRecord(idempotencyKey);
+            if (existing.isPresent()) {
+                log.info("Duplicate transfer request detected, returning stored response");
+                return idempotencyService.deserializeResponse(
+                        existing.get().getResponseBody(),
+                        TransactionResponse.class);
+            }
+        }
+
         if (request.getFromAccountNumber().equals(request.getToAccountNumber())) {
             throw new SameAccountTransferException();
         }
 
-        // Step 1: Verify both accounts exist
         getAccountOrThrow(request.getFromAccountNumber());
         getAccountOrThrow(request.getToAccountNumber());
 
-        // Step 2: Debit source account
-        try {
-            accountServiceClient.debit(
-                    request.getFromAccountNumber(),
-                    BalanceUpdateRequest.builder()
-                            .amount(request.getAmount())
-                            .description("Transfer to " + request.getToAccountNumber())
-                            .build()
-            );
-        } catch (FeignException.BadRequest e) {
-            throw new InsufficientBalanceException(request.getFromAccountNumber(), request.getAmount());
-        }
+        accountServiceClient.debit(
+                request.getFromAccountNumber(),
+                BalanceUpdateRequest.builder()
+                        .amount(request.getAmount())
+                        .description("Transfer to " + request.getToAccountNumber())
+                        .build()
+        );
 
-        // Step 3: Credit destination account
-        // If this fails → @Transactional rolls back the debit ✅
         accountServiceClient.credit(
                 request.getToAccountNumber(),
                 BalanceUpdateRequest.builder()
@@ -133,7 +177,6 @@ public class TransactionService {
                         .build()
         );
 
-        // Step 4: Record the transaction
         Transaction transaction = Transaction.builder()
                 .transactionNumber(transactionNumberGenerator.generate())
                 .type(TransactionType.TRANSFER)
@@ -145,17 +188,24 @@ public class TransactionService {
                 .build();
 
         Transaction saved = transactionRepository.save(transaction);
+        TransactionResponse response = mapToResponse(saved);
+
+        if (idempotencyKey != null) {
+            idempotencyService.saveRecord(
+                    idempotencyKey,
+                    saved.getTransactionNumber(),
+                    response,
+                    201
+            );
+        }
+
         log.info("Transfer successful: {}", saved.getTransactionNumber());
-        return mapToResponse(saved);
+        return response;
     }
 
-    // ─── GET HISTORY BY ACCOUNT ───────────────────────────────
+    // ─── existing methods unchanged below ─────────────────────
     public List<TransactionResponse> getTransactionHistory(String accountNumber) {
-        log.info("Fetching transaction history for: {}", accountNumber);
-
-        // Verify account exists
         getAccountOrThrow(accountNumber);
-
         return transactionRepository
                 .findByFromAccountNumberOrToAccountNumber(accountNumber, accountNumber)
                 .stream()
@@ -163,9 +213,7 @@ public class TransactionService {
                 .toList();
     }
 
-    // ─── GET BY TRANSACTION NUMBER ────────────────────────────
     public TransactionResponse getByTransactionNumber(String transactionNumber) {
-        log.info("Fetching transaction: {}", transactionNumber);
         Transaction transaction = transactionRepository
                 .findByTransactionNumber(transactionNumber)
                 .orElseThrow(() -> new RuntimeException(
@@ -173,7 +221,6 @@ public class TransactionService {
         return mapToResponse(transaction);
     }
 
-    // ─── Private Helpers ──────────────────────────────────────
     private AccountResponse getAccountOrThrow(String accountNumber) {
         try {
             return accountServiceClient.getAccountByNumber(accountNumber);
