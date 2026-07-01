@@ -35,6 +35,9 @@ public class Account {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal balance;             // BigDecimal for money — NEVER use double!
 
+    @Version                        // ← ADD THIS — one line, Hibernate does the rest
+    private Long version;           // starts at 0, increments on every update
+    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -18,6 +18,7 @@ public class AccountResponse {
     private AccountType accountType;
     private AccountStatus status;
     private BigDecimal balance;
+    private Long version;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

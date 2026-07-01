@@ -66,8 +66,23 @@ public class GlobalExceptionHandler {
         log.error("Insufficient balance: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(buildError(400, "Bad Request", ex.getMessage(), request));
-        }
+    }
 
+    // ─── Handle: Optimistic Lock Conflict → 409 ──────────────
+    @ExceptionHandler({
+    OptimisticLockException.class,
+    org.springframework.orm.ObjectOptimisticLockingFailureException.class
+    })
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(
+            Exception ex, HttpServletRequest request) {
+    log.error("Optimistic lock conflict: {}", ex.getMessage());
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(buildError(
+                    409,
+                    "Conflict",
+                    "Account was modified by another request. Please retry.",
+                    request));
+    }
     // ─── Helper ───────────────────────────────────────────────
     private ErrorResponse buildError(int status, String error,
                                      String message, HttpServletRequest request) {

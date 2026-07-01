@@ -124,6 +124,7 @@ public class AccountService {
                 .accountType(account.getAccountType())
                 .status(account.getStatus())
                 .balance(account.getBalance())
+                .version(account.getVersion())
                 .createdAt(account.getCreatedAt())
                 .updatedAt(account.getUpdatedAt())
                 .build();
