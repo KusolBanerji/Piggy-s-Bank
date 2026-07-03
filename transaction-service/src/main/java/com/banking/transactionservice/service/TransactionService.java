@@ -21,7 +21,8 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountServiceClient accountServiceClient;
     private final TransactionNumberGenerator transactionNumberGenerator;
-    private final IdempotencyService idempotencyService;    // ← ADD THIS
+    private final IdempotencyService idempotencyService;    // ← ADD THIS IdempotencyService
+    private final TransferSagaService transferSagaService;  // ← ADD THIS TransferSagaService
 
     // ─── DEPOSIT ──────────────────────────────────────────────
     @Transactional
@@ -158,48 +159,19 @@ public class TransactionService {
             throw new SameAccountTransferException();
         }
 
-        getAccountOrThrow(request.getFromAccountNumber());
-        getAccountOrThrow(request.getToAccountNumber());
+        // Delegate to Saga orchestrator
+        TransactionResponse response = transferSagaService.executeTransfer(request);
 
-        accountServiceClient.debit(
-                request.getFromAccountNumber(),
-                BalanceUpdateRequest.builder()
-                        .amount(request.getAmount())
-                        .description("Transfer to " + request.getToAccountNumber())
-                        .build()
-        );
-
-        accountServiceClient.credit(
-                request.getToAccountNumber(),
-                BalanceUpdateRequest.builder()
-                        .amount(request.getAmount())
-                        .description("Transfer from " + request.getFromAccountNumber())
-                        .build()
-        );
-
-        Transaction transaction = Transaction.builder()
-                .transactionNumber(transactionNumberGenerator.generate())
-                .type(TransactionType.TRANSFER)
-                .status(TransactionStatus.SUCCESS)
-                .fromAccountNumber(request.getFromAccountNumber())
-                .toAccountNumber(request.getToAccountNumber())
-                .amount(request.getAmount())
-                .description(request.getDescription())
-                .build();
-
-        Transaction saved = transactionRepository.save(transaction);
-        TransactionResponse response = mapToResponse(saved);
-
+        // Store idempotency record after successful saga
         if (idempotencyKey != null) {
             idempotencyService.saveRecord(
                     idempotencyKey,
-                    saved.getTransactionNumber(),
+                    response.getTransactionNumber(),
                     response,
                     201
             );
         }
 
-        log.info("Transfer successful: {}", saved.getTransactionNumber());
         return response;
     }
 

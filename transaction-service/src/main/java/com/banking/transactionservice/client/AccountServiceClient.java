@@ -22,4 +22,9 @@ public interface AccountServiceClient {
     @PutMapping("/api/accounts/{accountNumber}/credit")
     AccountResponse credit(@PathVariable String accountNumber,
                            @RequestBody BalanceUpdateRequest request);
+
+    // Reverse a debit transaction
+    @PutMapping("/api/accounts/{accountNumber}/reverse-debit")
+    AccountResponse reverseDebit(@PathVariable String accountNumber,
+                                 @RequestBody BalanceUpdateRequest request);
 }

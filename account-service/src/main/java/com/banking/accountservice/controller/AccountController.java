@@ -84,4 +84,13 @@ public class AccountController {
         log.info("PUT /api/accounts/{}/credit", accountNumber);
         return ResponseEntity.ok(accountService.credit(accountNumber, request));
     }
+
+    // PUT /api/accounts/{accountNumber}/reverse-debit
+    @PutMapping("/{accountNumber}/reverse-debit")
+    public ResponseEntity<AccountResponse> reverseDebit(
+            @PathVariable String accountNumber,
+            @Valid @RequestBody BalanceUpdateRequest request) {
+        log.info("PUT /api/accounts/{}/reverse-debit", accountNumber);
+        return ResponseEntity.ok(accountService.reverseDebit(accountNumber, request));
+    }
 }

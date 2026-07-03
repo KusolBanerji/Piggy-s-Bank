@@ -60,6 +60,15 @@ public class GlobalExceptionHandler {
                         "Something went wrong", request));
     }
 
+    @ExceptionHandler(TransferFailedException.class)
+    public ResponseEntity<ErrorResponse> handleTransferFailed(
+            TransferFailedException ex, HttpServletRequest request) {
+        log.error("Transfer failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(buildError(422, "Unprocessable Entity",
+                        ex.getMessage(), request));
+    }
+
     private ErrorResponse buildError(int status, String error,
                                      String message, HttpServletRequest request) {
         return ErrorResponse.builder()

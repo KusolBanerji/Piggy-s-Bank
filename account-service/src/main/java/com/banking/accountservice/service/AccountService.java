@@ -180,4 +180,24 @@ public class AccountService {
                 request.getAmount(), accountNumber, saved.getBalance());
         return mapToResponse(saved, user);
     }
+
+    // ─── REVERSE DEBIT (compensation for failed transfer) ─────
+    @Transactional
+    public AccountResponse reverseDebit(String accountNumber,
+                                        BalanceUpdateRequest request) {
+        log.info("Reversing debit of {} for account: {}",
+                request.getAmount(), accountNumber);
+
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+
+        // Credit the amount back — reversing the original debit
+        account.setBalance(account.getBalance().add(request.getAmount()));
+        Account saved = accountRepository.save(account);
+
+        UserResponse user = getUserOrThrow(account.getUserId());
+        log.info("Debit reversed for account: {}. New balance: {}",
+                accountNumber, saved.getBalance());
+        return mapToResponse(saved, user);
+    }
 }
