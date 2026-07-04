@@ -39,6 +39,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
     @Column(nullable = false, updatable = false)           // Set once, never updated
     private LocalDateTime createdAt;
 
@@ -49,6 +53,7 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (role == null) role = Role.CUSTOMER;   // default role
     }
 
     @PreUpdate          // Runs automatically BEFORE every update

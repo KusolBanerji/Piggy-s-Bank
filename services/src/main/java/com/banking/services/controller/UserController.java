@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,6 +72,7 @@ public class UserController {
     
     // Code with DTOs and custom exceptions will be added here later for better separation of concerns and security (e.g. not exposing password field).
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")           // only ADMIN can create users directly
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request) {
         log.info("POST /api/users");
@@ -79,12 +81,16 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")           // only ADMIN can list all users
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         log.info("GET /api/users");
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.username")
+    // ADMIN can see anyone
+    // CUSTOMER can only see themselves
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         log.info("GET /api/users/{}", id);
         return ResponseEntity.ok(userService.getUserById(id));
@@ -99,6 +105,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")           // only ADMIN can delete users
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         log.info("DELETE /api/users/{}", id);
         userService.deleteUser(id);
